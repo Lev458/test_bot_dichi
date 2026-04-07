@@ -1,14 +1,14 @@
-name: Telegram Bot Continuous
+name: Telegram Bot
 
 on:
   schedule:
-    # Запуск каждые 5 часов (чтобы не выходить за лимит 6 часов одного запуска)
-    - cron: '0 */5 * * *'
+    # Автоматический запуск каждые 6 часов (лимит GitHub)
+    - cron: '0 */6 * * *'
   push:
-    # Запуск при обновлении кода в ветке main
+    # Запуск при каждом обновлении кода
     branches: [ main ]
   workflow_dispatch:
-    # Возможность запустить бота вручную кнопкой
+    # Кнопка для ручного запуска в любое время
 
 jobs:
   run-bot:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip' # Ускоряет установку библиотек при перезапусках
+          cache: 'pip' # Ускоряет повторные запуски
 
       - name: Install Dependencies
         run: |
@@ -31,11 +31,12 @@ jobs:
 
       - name: Run Telegram Bot
         env:
-          # Здесь мы связываем секреты из настроек репозитория с кодом
+          # Передаем секреты из настроек репозитория в код
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
           GTHB_TOKEN: ${{ secrets.GTHB_TOKEN }}
           ALLOWED_CHATS: ${{ secrets.ALLOWED_CHATS}}
           FILE_GIST_NAME: ${{ secrets.FILE_GIST_NAME }}
-        # Бот будет работать 5 часов 50 минут, затем выключится, чтобы через 10 минут запустился новый цикл
-        run: timeout 5h 50m python run.py || echo "Time is up, restarting soon..."
+        # timeout нужен, чтобы GitHub не убил процесс жестко. 
+        # Бот поработает 350 минут и завершится красиво, ожидая следующего cron-цикла.
+        run: timeout 350m python run.py || echo "Цикл завершен, ожидаем перезапуск..."
