@@ -1,0 +1,41 @@
+name: Telegram Bot Continuous
+
+on:
+  schedule:
+    # Запуск каждые 5 часов (чтобы не выходить за лимит 6 часов одного запуска)
+    - cron: '0 */5 * * *'
+  push:
+    # Запуск при обновлении кода в ветке main
+    branches: [ main ]
+  workflow_dispatch:
+    # Возможность запустить бота вручную кнопкой
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # Ускоряет установку библиотек при перезапусках
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Telegram Bot
+        env:
+          # Здесь мы связываем секреты из настроек репозитория с кодом
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GTHB_TOKEN: ${{ secrets.GTHB_TOKEN }}
+          ALLOWED_CHATS: ${{ secrets.ALLOWED_CHATS}}
+          FILE_GIST_NAME: ${{ secrets.FILE_GIST_NAME }}
+        # Бот будет работать 5 часов 50 минут, затем выключится, чтобы через 10 минут запустился новый цикл
+        run: timeout 5h 50m python run.py || echo "Time is up, restarting soon..."
