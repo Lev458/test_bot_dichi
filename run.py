@@ -57,10 +57,10 @@ async def download_data():
             # Просто указываем эндпоинт, библиотека сама соберет URL
             gist_data = await gh.getitem(f"/gists/{GIST_ID}")
             content = gist_data['files'][FILE_NAME]['content']
-            print(json.loads(content))
+            ##print(json.loads(content))
             return json.loads(content)
         except Exception as e:
-            print(f"Ошибка: {e}")
+            ##print(f"Ошибка: {e}")
             return {}
 
 
@@ -84,11 +84,11 @@ async def upload_data():
             # 3. Метод patch обновляет существующий Gist
             # Библиотека сама добавит https://github.com в начало
             await gh.patch(f"/gists/{GIST_ID}", data=payload)
-            print("Данные успешно обновлены на GitHub!")
+            ##print("Данные успешно обновлены на GitHub!")
             return True
             
         except Exception as e:
-            print(f"Ошибка при сохранении: {e}")
+            ##print(f"Ошибка при сохранении: {e}")
             return False
 def get_actual_data(chat_id):
     """Возвращает (eat_dict, herbs_dict) для конкретного чата"""
@@ -132,7 +132,7 @@ async def change_eat(text: str, chat_id: int):
             name_raw = ' '.join(parts[:-1]) if len(parts) > 1 and parts[-1].isdigit() else content
 
             user_item = to_init(name_raw)
-            print(user_item,herbs_dict)
+            #print(user_item,herbs_dict)
             # Проверяем и в еде, и в травах
             for current_dict in [eat_dict, herbs_dict]:
                 if user_item in current_dict:
@@ -147,7 +147,7 @@ async def change_eat(text: str, chat_id: int):
                     
             return "not_found"
         except Exception as e:
-            print(f"Ошибка: {e}")
+            #print(f"Ошибка: {e}")
             return "error"
 
 async def all_eat_get(chat_id, mode="eat"):
@@ -236,7 +236,7 @@ def to_init(text):
 
     return ' '.join(res)
 
-print(to_init('мышиная желчь'))
+#print(to_init('мышиная желчь'))
 
 #all message answers
 async def create_bot():
@@ -281,7 +281,7 @@ async def main():
     @dp.message(F.text)
     async def main_message(message: Message):
         # Проверка подписки
-        print(message.from_user.first_name,message.from_user.id,message.chat.id)
+        #print(message.from_user.first_name,message.from_user.id,message.chat.id)
         if not await is_member(message.from_user.id, GROUP_IDs, bot):
             return 
         all_member = await get_all_chats_member(message.from_user.id,GROUP_IDs,bot)
@@ -314,7 +314,7 @@ async def main():
         # 3. ОБРАБОТКА ДОБАВЛЕНИЯ/УДАЛЕНИЯ (+ / -)
         if text[0] in ['+', '-']:
             current_sign = text[0] 
-            print(text)
+            #print(text)
             # Разбиваем на строки или запятые для массового ввода
             raw_content = text[1:].strip()
             items = raw_content.replace(',', '\n').split('\n')
@@ -327,7 +327,7 @@ async def main():
                 
                 # Формируем команду для функции
                 full_command = item if item.startswith(('+', '-')) else current_sign + item
-                print(full_command)
+                #print(full_command)
                 # Вызываем универсальную функцию (она сама ищет в еде и травах конкретного чата)
                 
                 res = await change_eat(full_command, chat_id)
@@ -354,20 +354,20 @@ async def main():
     await asyncio.sleep(5) 
     
     try:
-        print("Попытка удалить вебхук...")
+        #print("Попытка удалить вебхук...")
         await bot.delete_webhook(drop_pending_updates=True)
-        print("Вебхук успешно удален!")
+        #print("Вебхук успешно удален!")
     except TelegramNetworkError as e:
-        print(f"Не удалось связаться с Telegram (сеть): {e}")
-        print("Пробую запустить polling всё равно...")
+        #print(f"Не удалось связаться с Telegram (сеть): {e}")
+        #print("Пробую запустить polling всё равно...")
         
     except Exception as e:
-        print(f"Другая ошибка: {e}")
+        #print(f"Другая ошибка: {e}")
     all_list_gist = await download_data() 
     ALL_CHATS_DATA.update(all_list_gist)
     
         # 2. Запускаем опрос серверов Telegram
-    print("Бот вышел в онлайн!")
+    #print("Бот вышел в онлайн!")
     await dp.start_polling(bot)
 
 
