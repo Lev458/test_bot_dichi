@@ -37,7 +37,7 @@ raw_chats = os.getenv("ALLOWED_CHATS", "")
 
 GROUP_IDs = [int(chat_id.strip()) for chat_id in raw_chats.split(",") if chat_id.strip()]
 # 1. Загружаем ВСЕ данные при старте
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_TOKEN = os.getenv('GTHB_TOKEN')
 GIST_ID = os.getenv('GIST_ID')
 FILE_NAME = os.getenv('FILE_GIST_NAME')  # Имя файла внутри гиста
 def parse_env_string(text):
