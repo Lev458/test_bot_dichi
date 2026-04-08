@@ -357,12 +357,8 @@ async def main():
         #print("Попытка удалить вебхук...")
         await bot.delete_webhook(drop_pending_updates=True)
         #print("Вебхук успешно удален!")
-    except TelegramNetworkError as e:
-        #print(f"Не удалось связаться с Telegram (сеть): {e}")
-        #print("Пробую запустить polling всё равно...")
-        
     except Exception as e:
-        #print(f"Другая ошибка: {e}")
+        print(f"Другая ошибка: {e}")
     all_list_gist = await download_data() 
     ALL_CHATS_DATA.update(all_list_gist)
     
