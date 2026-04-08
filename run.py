@@ -289,7 +289,7 @@ async def main():
         all_member = await get_all_chats_member(message.from_user.id,GROUP_IDs,bot)
         
         if message.chat.type == ChatType.PRIVATE and all_member:
-            if len(all_member) == 1:
+            if all_member != 1:
                 chat_id = all_member[0]
             else:
                 await message.answer("Вы состоите в нескольких чатах!\n Пока нет возможности выбрать в какой чат добавить или скушать добычу. Зайдите в чат в который хотите добавить добычу и напишите команду там.")
