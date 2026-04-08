@@ -185,7 +185,7 @@ async def get_all_chats_member(user_id,chat_id,bot:Bot)-> int:
             if member.status in ['member', 'administrator', 'creator']:
                 all_list.append(x)
         
-        if len(all_list) == 1: return all_list[0]
+        if len(all_list) == 1: return all_list
         if len(all_list):return 1
         return 0
     except Exception:
@@ -284,15 +284,18 @@ async def main():
         #print(message.from_user.first_name,message.from_user.id,message.chat.id)
         if not await is_member(message.from_user.id, GROUP_IDs, bot):
             return 
+        chat_id = message.chat.id
+
         all_member = await get_all_chats_member(message.from_user.id,GROUP_IDs,bot)
+        
         if message.chat.type == ChatType.PRIVATE and all_member:
-            if len(all_member) == 1:chat_id = all_member[0]
+            if len(all_member) == 1:
+                chat_id = all_member[0]
             else:
                 await message.answer("Вы состоите в нескольких чатах!\n Пока нет возможности выбрать в какой чат добавить или скушать добычу. Зайдите в чат в который хотите добавить добычу и напишите команду там.")
                 return
             
             
-        chat_id = message.chat.id
         # Очистка текста
         text = message.text.strip().replace(':', '')
         if not text:
