@@ -134,21 +134,29 @@ async def change_eat(text: str, chat_id: int):
             user_item = to_init(name_raw)
             #print(user_item,herbs_dict)
             # Проверяем и в еде, и в травах
-            for current_dict in [eat_dict, herbs_dict]:
-                if user_item in current_dict:
-                    if sign == '+':
-                        current_dict[user_item] += quantity
-                    else:
-                        if current_dict[user_item] - quantity <0: return "already_zero"
-                        current_dict[user_item] = max(0, current_dict[user_item] - quantity)
-                    async with lock:
-                        await upload_data()
-                    return "success_plus" if sign == '+' else "success_minus"
-                    
-            return "not_found"
+            
+            if user_item in herbs_dict:
+                if sign == '+':
+                    herbs_dict[user_item] += quantity
+                else:
+                    if herbs_dict[user_item] - quantity <0: return "already_zero",None
+                    herbs_dict[user_item] = max(0, herbs_dict[user_item] - quantity)
+                async with lock:
+                    await upload_data()
+                return ("success_plus", "herbs") if sign == "+" else ("success_minus", "herbs")
+            elif user_item in eat_dict:
+                if sign == '+':
+                    eat_dict[user_item] += quantity
+                else:
+                    if eat_dict[user_item] - quantity <0: return "already_zero",None
+                    eat_dict[user_item] = max(0, eat_dict[user_item] - quantity)
+                async with lock:
+                    await upload_data()
+                return ("success_plus", "eat") if sign == "+" else ("success_minus", "eat")
+            return "not_found",None
         except Exception as e:
-            #print(f"Ошибка: {e}")
-            return "error"
+            print(f"Ошибка: {e}")
+            return "error",None
 
 async def all_eat_get(chat_id, mode="eat"):
     """mode может быть 'eat' или 'herbs'"""
@@ -240,7 +248,7 @@ def to_init(text):
 
 #all message answers
 async def create_bot():
-    session = AiohttpSession()
+    session = AiohttpSession(proxy='socks5://127.0.0.1:9050')
     # Мы принудительно заставляем aiohttp использовать IPv4
     connector = aiohttp.TCPConnector(family=2) 
     session._connector = connector
@@ -265,23 +273,30 @@ async def create_bot():
 
 async def main():
 
-
+    
     bot = await create_bot()
     dp = Dispatcher()
     @dp.chat_member(ChatMemberUpdatedFilter(member_status_changed=JOIN_TRANSITION))
+
     async def welcome_new_member(event: ChatMemberUpdated):
-        await event.answer(
-            f"Привет, {event.new_chat_member.user.first_name}! Я куча с добычей, рад тебя видеть!"
-            "\nМои команды:"
-            "\n\n\t'+белка 3' - добавляет в общую кучу 3 белки" \
-            "\n\n\t'-белка' - удаляет 1 белку из общей кучи" \
-            "\n\n\t'Куча с добычей' - показывает всю собранную добычу"
-            "\n\n\t'Хранилище с лекарствами' - показывает все собранные лекарства"
-        )
+        if await is_member(event.new_chat_member.user.id,GROUP_IDs,bot):
+            await event.answer(
+                f"Привет, {event.new_chat_member.user.first_name}! Я куча с добычей, рад тебя видеть!"
+                "\nМои команды:"
+                "\n\n\t'+белка 3' - добавляет в общую кучу 3 белки" \
+                "\n\n\t'-белка' - удаляет 1 белку из общей кучи" \
+                "\n\n\t'Куча с добычей' - показывает всю собранную добычу"
+                "\n\n\t'Хранилище с лекарствами' - показывает все собранные лекарства"
+            )
+        #elif await is_member(event.new_chat_member.user.id,list(,),bot):
+        #    await event.answer(
+        #        f"Привет, {event.new_chat_member.user.first_name}! Я - куча с добычей, рад тебя видеть!"
+        #    )
     @dp.message(F.text)
     async def main_message(message: Message):
         # Проверка подписки
         #print(message.from_user.first_name,message.from_user.id,message.chat.id)
+        
         if not await is_member(message.from_user.id, GROUP_IDs, bot):
             return 
         chat_id = message.chat.id
@@ -289,10 +304,10 @@ async def main():
         all_member = await get_all_chats_member(message.from_user.id,GROUP_IDs,bot)
         
         if message.chat.type == ChatType.PRIVATE and all_member:
-            if all_member != 1:
+            if len(all_member) == 1:
                 chat_id = all_member[0]
             else:
-                await message.answer("Вы состоите в нескольких чатах!\n Пока нет возможности выбрать в какой чат добавить или скушать добычу. Зайдите в чат в который хотите добавить добычу и напишите команду там.")
+                await message.answer("Вы состоите в нескольких чатах!\n Пока нет возможности выбрать в какой чат добавить или скушать добычу(или травы). Зайдите в чат, в который хотите добавить добычу(или травы) и напишите команду там.")
                 return
             
             
@@ -306,11 +321,11 @@ async def main():
             await message.answer(f"Привет! Я куча для этого чата. Пиши '+белка' или 'куча с добычей'!")
             return
         # 2. ПРОСМОТР КУЧ (Вызываем с указанием mode)
-        if low_text in ['куча с добычей', 'куча с дичью', 'хранилище с дичью', 'хранилище с добычей']:
+        if low_text in ['куча с добычей', 'куча с дичью', 'хранилище с дичью', 'хранилище с добычей','куча добычи','куча дичи']:
             report = await all_eat_get(chat_id, mode='eat')
             await message.answer(report)
             return
-        if low_text in ['куча с травами', 'куча с лекарствами', 'хранилище с травами']:
+        if low_text in ['куча с травами', 'куча с лекарствами', 'хранилище с травами','куча трав','хранилище трав']:
             report = await all_eat_get(chat_id, mode='herbs') # mode с маленькой буквы для надежности
             await message.answer(report)
             return
@@ -333,17 +348,18 @@ async def main():
                 #print(full_command)
                 # Вызываем универсальную функцию (она сама ищет в еде и травах конкретного чата)
                 
-                res = await change_eat(full_command, chat_id)
-                
+                res,is_eat = await change_eat(full_command, chat_id)
+                print(res,is_eat)
+                is_eat = True if is_eat=='eat' else False
                 # Чистим имя для красивого вывода в чат
                 clean_name = to_init(item.lstrip('+- ')) 
                 
                 if res == "success_plus":
-                    results.append(f"✅ {clean_name}: добавлено")
+                    results.append(f"✅ {clean_name}: Добавлено")
                 elif res == "success_minus":
-                    results.append(f" {clean_name}: Скушано!")
+                    results.append(f"{clean_name}: {'Скушано' if is_eat else 'Использовано'}!")
                 elif res == "already_zero":
-                    results.append(f"❌ В куче не хватает {to_genitive(clean_name)}! Пора отправится на охоту!")
+                    results.append(f"❌ В {'куче' if is_eat else 'хранилище с травами'} не хватает {to_genitive(clean_name)}! Пора отправится {'на охоту' if is_eat else 'за травами'}!")
                 elif res == "not_found":
                     results.append(f"❓ {clean_name}: нет в списке")
                 else:
