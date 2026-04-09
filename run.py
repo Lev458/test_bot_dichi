@@ -248,7 +248,7 @@ def to_init(text):
 
 #all message answers
 async def create_bot():
-    session = AiohttpSession(proxy='socks5://127.0.0.1:9050')
+    session = AiohttpSession()
     # Мы принудительно заставляем aiohttp использовать IPv4
     connector = aiohttp.TCPConnector(family=2) 
     session._connector = connector
