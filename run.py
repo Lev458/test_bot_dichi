@@ -149,22 +149,22 @@ async def update_characters(chat_id,message_text:str,message):
             print('YES')
 
             if ALL_CHATS_DATA[chat_id]['characters'][1].get(to_init_plur(item.split(':')[0].strip())):
-                print(item.split(':'),item,item.split(':')[1].strip())
+                print(item.split(':'),item,to_init(item.split(':')[1].strip()))
 
-                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].append(item.split(':')[1].strip())
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].append(to_init(item.split(':')[1].strip()))
             else:
-                print(item.split(':'),item,item.split(':')[1].strip())
-                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())] = [item.split(':')[1].strip(),]
+                print(item.split(':'),item,to_init(item.split(':')[1].strip()))
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())] = [to_init(item.split(':')[1].strip()),]
             return True
         else:
             print('YES')
             
             if ALL_CHATS_DATA[chat_id]['characters'][1].get(to_init_plur(item.split(':')[0].strip())):
-                print(item.split(':'),item,item.split(':')[1].strip())
+                print(item.split(':'),item,to_init(item.split(':')[1].strip()))
 
-                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].remove(item.split(':')[1].strip())
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].remove(to_init(item.split(':')[1].strip()))
             else:
-                print(item.split(':'),item,item.split(':')[1].strip())
+                print(item.split(':'),item,to_init(item.split(':')[1].strip()))
                 return False
             return True
 
@@ -487,7 +487,7 @@ async def main():
             print('REMOVE!!!!!!!!!!')
             current_sign = 'добавить' if low_text.startswith('добавить') else 'удалить'
 
-            raw_content = text[len(current_sign):].strip()
+            raw_content = low_text[len(current_sign):].strip()
             print(low_text,raw_content)
             items = raw_content.replace(',', '\n').split('\n')
             print(items)
