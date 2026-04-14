@@ -17,7 +17,7 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 from aiogram.client.session.aiohttp import AiohttpSession
 import aiohttp
-from database import ALL_CHATS_DATA,lock
+from database import ALL_CHATS_DATA,lock,characters_lock
 from gidgethub.aiohttp import GitHubAPI
 from aiogram.exceptions import TelegramNetworkError
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +48,7 @@ def parse_env_string(text):
             # Убираем лишние пробелы и кавычки по краям
             result[key.strip()] = value.strip().strip("'\"")
     return result
+
 async def download_data():
     async with aiohttp.ClientSession() as session:
         # Создаем клиент, который сам знает про заголовки и API
@@ -98,9 +99,117 @@ def get_actual_data(chat_id):
         herbs_raw = 'паутина:мышиная желчь:мох:мёд:алоэ:бурачник:брусника:вереск:грушанка:док:ежевика:золотарник:календула:клевер:крапива:крестовник:кровохлебка:лаванда:лопух:мак:малина:маргаритка:мать-и-мачеха:можжевельник:водная мята:кошачья мята:окопник:петрушка:пижма:подмаренник:подорожник:ракитник:розмарин:ромашка:солодка:тимьян:тысячелистник:укроп:хвощ:черника:чистотел:ястребинка:кора и листья ивы:кора тополя:кора ольхи:листья дуба:рябина:березовые листья:еловые иголки:амброзия:щавель'.split(':')
         ALL_CHATS_DATA[cid] = {
             "eat": {to_init(k): 0 for k in ["Рыба", "Мелкий грызун", "Птица", "Кролик", "Лягушка", "Ящерица", "Белка"]},
-            "herbs": {to_init(k.capitalize()): 0 for k in herbs_raw}
+            "herbs": {to_init(k.capitalize()): 0 for k in herbs_raw},
+            "characters":[]
         }
     return ALL_CHATS_DATA[cid]["eat"], ALL_CHATS_DATA[cid]["herbs"]
+def get_characters(chat_id):
+    cid = str(chat_id)
+    if cid not in ALL_CHATS_DATA:
+        herbs_raw = 'паутина:мышиная желчь:мох:мёд:алоэ:бурачник:брусника:вереск:грушанка:док:ежевика:золотарник:календула:клевер:крапива:крестовник:кровохлебка:лаванда:лопух:мак:малина:маргаритка:мать-и-мачеха:можжевельник:водная мята:кошачья мята:окопник:петрушка:пижма:подмаренник:подорожник:ракитник:розмарин:ромашка:солодка:тимьян:тысячелистник:укроп:хвощ:черника:чистотел:ястребинка:кора и листья ивы:кора тополя:кора ольхи:листья дуба:рябина:березовые листья:еловые иголки:амброзия:щавель'.split(':')
+        ALL_CHATS_DATA[cid] = {
+            "eat": {to_init(k): 0 for k in ["Рыба", "Мелкий грызун", "Птица", "Кролик", "Лягушка", "Ящерица", "Белка"]},
+            "herbs": {to_init(k.capitalize()): 0 for k in herbs_raw},
+            "characters":[]
+        }
+    if len(ALL_CHATS_DATA[cid]["characters"])<2:
+        return None,len(ALL_CHATS_DATA[cid]["characters"])
+    
+    return ALL_CHATS_DATA[cid]["characters"][0],ALL_CHATS_DATA[cid]["characters"][1]
+async def update_characters(chat_id,message_text:str,message):
+    
+    chat_id = str(chat_id)
+    message_id,all_items = get_characters(chat_id)
+    if not message_id or message_id == 'null':
+        if all_items == 0 or message_id == None or message_id == 'null' or message_id == 'None':
+            message_to_edit = await message.answer('ВНИМАНИЕ! ЭТО СООБЩЕНИЕ ДЛЯ ПОСЛЕДУЮЩЕГО ИЗМЕНЕНИЯ')
+            print(message_to_edit.message_id,'uelrebvnovk')
+            all_items = [str(message_to_edit.message_id),]
+            async with characters_lock:
+                await save_characters(chat_id,all_items)
+        elif all_items == 1:
+            all_items = [message_id,]
+            async with characters_lock:
+                await save_characters(chat_id,all_items)
+    current_sign = 'добавить' if message_text.startswith('добавить') else 'удалить'
+    print(message_text,'NO_HELLO')
+    item  = message_text.removeprefix("добавить").removeprefix("удалить").strip()
+
+    all_characters = ['когти','тени когтя','котята','дарующие','старейшины']
+
+    for x in range(len(all_characters)):
+        all_characters[x] = to_init_plur(all_characters[x])
+
+    print(item,'HELLOO')
+    print(len(item.split(':'))==2 , to_init_plur(item.split(':')[0].strip()) , all_characters)
+    if len(item.split(':'))==2 and to_init_plur(item.split(':')[0].strip()) in all_characters:
+        if len(ALL_CHATS_DATA[chat_id]['characters'])==1:
+                ALL_CHATS_DATA[chat_id]['characters'].append(dict())
+        if current_sign == "добавить":
+            print('YES')
+
+            if ALL_CHATS_DATA[chat_id]['characters'][1].get(to_init_plur(item.split(':')[0].strip())):
+                print(item.split(':'),item,item.split(':')[1].strip())
+
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].append(item.split(':')[1].strip())
+            else:
+                print(item.split(':'),item,item.split(':')[1].strip())
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())] = [item.split(':')[1].strip(),]
+            return True
+        else:
+            print('YES')
+            
+            if ALL_CHATS_DATA[chat_id]['characters'][1].get(to_init_plur(item.split(':')[0].strip())):
+                print(item.split(':'),item,item.split(':')[1].strip())
+
+                ALL_CHATS_DATA[chat_id]['characters'][1][to_init_plur(item.split(':')[0].strip())].remove(item.split(':')[1].strip())
+            else:
+                print(item.split(':'),item,item.split(':')[1].strip())
+                return False
+            return True
+
+    else:
+        return False
+    
+async def update_message_characters(chat_id,bot,message):
+    message_id,all_items = get_characters(chat_id)
+    if not message_id or message_id == 'null':
+        print(message_id,all_items,'hrebtsnliudnhjdloxfdljgolhnjgkivjkhcfjngklobhkf')
+        message_to_edit = await message.answer('ВНИМАНИЕ! ЭТО СООБЩЕНИЕ ДЛЯ ПОСЛЕДУЮЩЕГО ИЗМЕНЕНИЯ')
+        print(message_to_edit.message_id,'uelrebvnovk')
+        all_items = [str(message_to_edit.message_id),]
+        message_id = message_to_edit.message_id
+        async with characters_lock:
+            await save_characters(chat_id,all_items)
+        
+            
+        
+    print(all_items,message_id)
+    message_id = int(message_id)
+    result = []
+    for character,users in all_items.items():
+        result.append(f'• {character}')
+        for user in users:
+            result.append(f'    \t - {user}')
+    result = '\n'.join(result)
+    print(result)
+
+
+
+
+
+    await bot.edit_message_text(
+        text=result,
+        chat_id=chat_id,
+        message_id=message_id
+    )
+    
+async def save_characters(chat_id,characters:list):
+    cid = str(chat_id)
+    ALL_CHATS_DATA[cid]['characters'] = characters
+    async with lock:
+        await upload_data()
+
 # --- Твои переделанные функции ---
 def to_genitive(word):
     # Получаем все варианты разбора слова
@@ -184,6 +293,18 @@ async def is_member(user_id: int, chat_id: list[int], bot: Bot):
     except Exception:
         # Если бот не может найти пользователя или чат
         return False
+async def is_admin(user_id: int, chat_id: int, bot: Bot):
+    try:
+        
+        member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+        # Статуса 'left' и 'kicked' означают, что человека нет в группе
+        print(user_id,member.status,'UHLBHFENJHBRGNOIBJGNRVHF')
+        if member.status in ['administrator', 'creator']:
+            return True
+        return False
+    except Exception:
+        # Если бот не может найти пользователя или чат
+        return False
 async def get_all_chats_member(user_id,chat_id,bot:Bot)-> int:
     try:
         all_list = []
@@ -243,6 +364,32 @@ def to_init(text):
         res.append(word)
 
     return ' '.join(res)
+def to_init_plur(text):
+    parts = text.lower().split()
+    if not parts: return ""
+
+    res = []
+    for i, w in enumerate(parts):
+        # Ищем среди всех вариантов разбора именно существительное
+        parsed_variants = morph.parse(w)
+        
+        # Пытаемся найти вариант, который является существительным
+        p = next((v for v in parsed_variants if 'NOUN' in v.tag), parsed_variants[0])
+        
+        # Если это существительное в родительном падеже (gent) и оно не первое, 
+        # скорее всего, это зависимое слово, которое менять НЕ НАДО
+        if i > 0 and 'gent' in p.tag:
+            word = w
+        else:
+            inflected = p.inflect({'plur', 'nomn'})
+            word = inflected.word if inflected else w
+        
+        if i == 0:
+            word = word.capitalize()
+        res.append(word)
+
+    return ' '.join(res)
+
 
 #print(to_init('мышиная желчь'))
 
@@ -312,10 +459,15 @@ async def main():
             
             
         # Очистка текста
-        text = message.text.strip().replace(':', '')
+        text = message.text.strip()
         if not text:
             return
         low_text = text.lower()
+        print(low_text,await is_admin(message.from_user.id,chat_id,bot))
+
+        # ------------------------- команды --------------------------------
+
+
         # 1. КОМАНДА СТАРТ
         if low_text == "/start":
             await message.answer(f"Привет! Я куча для этого чата. Пиши '+белка' или 'куча с добычей'!")
@@ -330,6 +482,45 @@ async def main():
             await message.answer(report)
             return
         # 3. ОБРАБОТКА ДОБАВЛЕНИЯ/УДАЛЕНИЯ (+ / -)
+        
+        elif (low_text.startswith('добавить') or low_text.startswith('удалить')) and await is_admin(message.from_user.id,chat_id,bot):
+            print('REMOVE!!!!!!!!!!')
+            current_sign = 'добавить' if low_text.startswith('добавить') else 'удалить'
+
+            raw_content = text[len(current_sign):].strip()
+            print(low_text,raw_content)
+            items = raw_content.replace(',', '\n').split('\n')
+            print(items)
+
+
+
+            
+
+            results = []
+            for item in items:
+                item = item.strip()
+                print(item,'!!!!!!')
+                if not item: 
+                    continue
+                
+                # Формируем команду для функции
+                full_command = item if item.startswith(('добавить', 'удалить')) else current_sign+" " + item
+                print(full_command)
+                result_sec = await update_characters(chat_id,full_command,message)
+                if result_sec:
+                    results.append(f"{full_command}: Обновлено!")
+                else:
+                    results.append(f"{full_command}: Ошибка!")
+            await message.answer('\n'.join(results))
+            await update_message_characters(chat_id,bot,message)
+
+            async with lock:
+                await upload_data()
+            return
+
+
+
+                
         if text[0] in ['+', '-']:
             current_sign = text[0] 
             #print(text)
@@ -367,6 +558,7 @@ async def main():
             if results:
                 await message.answer("\n".join(results))
             return
+        
 
 
     # 1. Загружаем данные из Gist один раз при старте
